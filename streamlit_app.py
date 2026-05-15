@@ -6,6 +6,35 @@ from datetime import datetime
 import re
 from itertools import cycle
 
+# ==========================================
+# 系統開關 (控制是否看起來像壞掉)
+# ==========================================
+IS_OPEN = True  # 改為 False 網頁會顯示「系統崩潰」
+
+# Streamlit 頁面設定 (必須是第一個指令)
+st.set_page_config(page_title="班表處理器", layout="wide")
+
+if not IS_OPEN:
+    # 這裡偽裝成系統發生嚴重 Bug 的樣子
+    st.error("### Internal Server Error (500)")
+    st.markdown("---")
+    st.error("**Critical Failure**: Unexpected token in JSON at position 0 (line 125)")
+    
+    # 模擬一段可怕的報錯訊息
+    fake_error = f"""
+    Traceback (most recent call last):
+      File "/app/main.py", line 482, in <module>
+        engine.start_service()
+      File "/app/utils/handler.py", line 12, in start_service
+        connection = database.connect(db_config)
+    ConnectionError: [Errno 110] Connection timed out: '192.168.1.104:3306'
+    
+    Current System Time: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    """
+    st.code(fake_error, language="python")
+    st.info("系統維護人員已收到報錯通知，將於修復完成後重新開放。")
+    st.stop()  # 阻斷下方所有程式碼執行
+
 # --------------------
 # 模組 1：解除合併儲存格並填入原值
 # --------------------
@@ -73,7 +102,6 @@ def create_shift_analysis(df_shift: pd.DataFrame, df_emp: pd.DataFrame, shift_ma
     df_shift = df_shift.copy()
     df_emp = df_emp.copy()
     
-    # 清洗欄位名稱
     df_shift.columns = [str(c).replace(" ", "").replace("　", "").strip() for c in df_shift.columns]
     df_emp.columns = [str(c).replace(" ", "").replace("　", "").strip() for c in df_emp.columns]
     
@@ -98,7 +126,6 @@ def create_shift_analysis(df_shift: pd.DataFrame, df_emp: pd.DataFrame, shift_ma
         if not name_col: continue
 
         raw_name = str(row.get(name_col, "")).strip()
-        # 清洗名字空白
         clean_name_key = raw_name.replace(" ", "").replace("　", "")
         
         if clean_name_key and clean_name_key not in ["nan", "None"]:
@@ -194,31 +221,21 @@ def create_shift_summary(df_analysis: pd.DataFrame) -> tuple[pd.DataFrame, pd.Da
 
     data_out = []
     
-    # 垃圾關鍵字清單 (備用，主要靠員編過濾)
+    # 垃圾關鍵字清單
     invalid_keywords = ["義診", "單診", "盤點", "電打", "公務", "測試"]
 
     for (emp_id, emp_name), shifts in summary_dict.items():
         title = info_map.get((emp_id, emp_name), "")
         
-        # === 關鍵邏輯：第一關 ===
-        # 1. 檢查員編：如果是空、nan、None，該員直接刪除 (Drop)
         has_valid_id = emp_id and emp_id.lower() not in ["nan", "none", ""]
-        
-        # 2. 檢查名字是否包含垃圾關鍵字
         is_invalid_name = any(k in emp_name for k in invalid_keywords)
         
-        # 若無員編，直接跳過不處理
         if not has_valid_id or is_invalid_name:
             continue
             
-        # === 填補邏輯：第二關 ===
-        # 3. 判斷是否為醫師或兼職 (這些人有員編，但不用填補)
         is_doctor_or_pt = ("醫師" in title) or ("兼職" in title)
-        
-        # 決定是否填補：不是醫師也不是兼職
         should_fill = not is_doctor_or_pt
         
-        # 準備循環填補器
         leave_cycle = cycle(["{sta}", "{res}"])
         
         row = [emp_id, emp_name]
@@ -236,13 +253,11 @@ def create_shift_summary(df_analysis: pd.DataFrame) -> tuple[pd.DataFrame, pd.Da
         data_out.append(row)
 
     cols = ["員工編號", "員工姓名"] + all_dates
-    # 回傳空的 debug_list 以符合格式
     return pd.DataFrame(data_out, columns=cols), pd.DataFrame()
 
 # --------------------
 # Streamlit 主程式
 # --------------------
-st.set_page_config(page_title="班表處理器(最終版)", layout="wide")
 st.title("班表處理器")
 st.success("✅ 規則：【無員編】者直接刪除；非醫師/兼職的員工，自動填補空班。")
 
@@ -262,7 +277,6 @@ if shift_file and employee_file:
     df_emp_raw = None
     try:
         if employee_file.name.lower().endswith('.csv'):
-            # 支援 CSV 讀取 (解決您之前的檔案問題)
             df_emp_raw = pd.read_csv(employee_file)
         else:
             wb_emp = load_workbook(employee_file, data_only=True)
@@ -290,10 +304,9 @@ if shift_file and employee_file:
                 shift_map = {"早": "早", "午": "午", "晚": "晚"}
                 
                 df_analysis = create_shift_analysis(df_shift, df_emp_raw, shift_map)
-                # 這裡會執行強力過濾邏輯
                 df_summary, _ = create_shift_summary(df_analysis)
             
-            st.subheader("📊 班別總表 (無員編已移除)")
+            st.subheader("📊 班別總表 (處理完成)")
             st.dataframe(df_summary, use_container_width=True)
 
             with BytesIO() as output:
