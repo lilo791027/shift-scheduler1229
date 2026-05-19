@@ -9,7 +9,7 @@ from itertools import cycle
 # ==========================================
 # 系統開關 (控制是否看起來像壞掉)
 # ==========================================
-IS_OPEN = False  # 改為 False 網頁會顯示「系統崩潰」
+IS_OPEN = True  # 改為 False 網頁會顯示「系統崩潰」
 
 # Streamlit 頁面設定 (必須是第一個指令)
 st.set_page_config(page_title="班表處理器", layout="wide")
