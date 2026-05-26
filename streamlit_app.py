@@ -313,3 +313,14 @@ if shift_file and employee_file:
                 with pd.ExcelWriter(output, engine="openpyxl") as writer:
                     df_summary.to_excel(writer, sheet_name="班別總表", index=False)
                 st.download_button("📥 下載 Excel 結果", output.getvalue(), "班別總表_最終版.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+# ==========================================
+# 頁尾署名區塊 (已加入)
+# ==========================================
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: gray; font-size: 14px;'>"
+    "Developed by <b>[林雅婷]</b> | © 2026 班表處理系統"
+    "</div>", 
+    unsafe_allow_html=True
+)
