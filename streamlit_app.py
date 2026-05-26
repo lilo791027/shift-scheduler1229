@@ -320,7 +320,7 @@ if shift_file and employee_file:
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: gray; font-size: 14px;'>"
-    "Developed by <b>[林雅婷]</b> | © 2026 班表處理系統"
+    "Developed by <b> 林雅婷 </b> | © 2026 班表處理系統"
     "</div>", 
     unsafe_allow_html=True
 )
